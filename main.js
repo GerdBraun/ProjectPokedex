@@ -29,8 +29,6 @@ const getPokemonsByUrl = (type, containerID, url, isSearchResult = false) => {
 
     xhr.addEventListener("readystatechange", function (x) {
         if (this.readyState === this.DONE) {
-            console.log(this);
-
             if (this.status === 404) {
                 createReport('error', this.data.containerID, 'Error 404');
                 return;
@@ -75,8 +73,9 @@ const createOutput = (type = 'list', containerID = '', results = null, isSearchR
         let pokeList = '';
         for (let pokemon of res.results) {
             pokeList += `
-                <li class="flex p-1 text-gray-800 bg-gray-100 rounded border border-gray-800">
-                    <a href="${pokemon.url}" class="pokelink">${pokemon.name}</a>
+                <li class="flex p-1 text-gray-800 bg-gray-100 rounded border border-gray-800 justify-between items-center">
+                    <span>${pokemon.name}</span>
+                    <a href="${pokemon.url}" class="pokelink poke-button poke-button-green">view</a>
                 </li>
             `;
         }
@@ -129,31 +128,23 @@ const createOutput = (type = 'list', containerID = '', results = null, isSearchR
         outputContainer.innerHTML += `
         <div class="flex flex-col">
             <label for="comment">your comment</label>
-            <textarea name="comment" id="comment" class="rounded">${results.comment}</textarea>
+            <textarea name="comment" id="comment" class="rounded" placeholder="please enter your comment">${(results.comment) ? results.comment : ''}</textarea>
             <button 
-                id="save-btn" 
-                value="${results.id}" 
-                class="remember poke-button poke-button-green" 
-                data-name="${results.name}" 
-                data-id="${results.id}" 
-                data-url="${baseUrlForPokemon + results.id}" 
-                data-img="${results.sprites.front_default}">
-                    remember ${results.name}
+                id="save-btn" class="remember poke-button poke-button-green">
+                    remember / save '${results.name}'
                 </button>
         </div>`;
 
         initSaveButton();
     } else {
         // favorites list
-        
-        arraySort(results, sortBy, sortOrder);
 
+        arraySort(results, sortBy, sortOrder);
         // need to refresh the data because when deleting we use the array index
-        localStorage.setItem('pokemonlist', JSON.stringify(results));
+        localStorage.setItem('pokemonobjects', JSON.stringify(results));
 
         const outputContainer = document.getElementById(containerID);
         outputContainer.innerHTML = '';
-        //console.log(data);
 
         let pokelist = '';
         for (let i in results) {
@@ -167,12 +158,14 @@ const createOutput = (type = 'list', containerID = '', results = null, isSearchR
             pokelist += `
                 <li class="flex p-1 text-gray-800 bg-gray-100 rounded border border-gray-800 justify-between items-center">
                     <figure class="bg-white rounded relative">
-                        <img src="${pokemon.img}" alt="${pokemon.name}" title="${pokemon.name}">
+                        <img src="${pokemon.sprites.front_default}" alt="${pokemon.name}" title="${pokemon.name}">
                         <figcaption class="text-sm absolute bottom-0 w-full text-center bg-white bg-opacity-50">${pokemon.name}</figcaption>
                     </figure>
-                    <span>saved ${time}</span>
+                    <span>saved
+                        <time datetime="${time}">${time}</time>
+                    </span>
                     <div class="flex">
-                        <a class="pokelink poke-button poke-button-green" href="${pokemon.url}">view</a>
+                        <a class="pokeshow poke-button poke-button-green" href="${baseUrlForPokemon + pokemon.id}" data-id="${i}">view</a>
                         <a class="pokeremove poke-button poke-button-highlight" href="#" data-id="${i}">remove</a>
                     </div>
                 </li>
@@ -196,7 +189,7 @@ const createReport = (type, containerID, text = 'Error 404') => {
     const outputContainer = document.getElementById(containerID);
 
     outputContainer.innerHTML = `
-        <div class="type-${type}  ${(type==='error') ? 'bg-red-500 text-white'  : 'bg-yellow-200' }  rounded p-3  flex flex-col">
+        <div class="type-${type}  ${(type === 'error') ? 'bg-red-500 text-white' : 'bg-yellow-200'}  rounded p-3  flex flex-col">
             <h3 class="text-3xl text-center">${type}</h3>
             <p class="text-center">${text}</p>
             <a href="#" id="resetBtn" class="poke-button poke-button-green">dismiss</a>
@@ -231,14 +224,29 @@ const getPokemonByUrl = (event) => {
     getPokemonsByUrl('single', 'detailsContainer', event.target.href);
 }
 
+/**
+ * loads a pokemon from storage
+ * @param {Event} event 
+ */
+const getPokemonFromStorage = (event) => {
+    event.preventDefault();
+
+    document.getElementById('detailsContainer').classList.add('loading');
+
+    const id = event.target.dataset.id;
+    const pokemonsData = JSON.parse(localStorage.getItem('pokemonobjects')) || [];
+
+    createOutput('single', 'detailsContainer', pokemonsData[id]);
+}
+
 
 
 /**
  * retrieve  saved pokemons from local storage
  */
 const getFavoritePokemons = () => {
-    const previousData = JSON.parse(localStorage.getItem('pokemonlist')) || [];
-    createOutput('fav', 'favContainer', previousData);
+    const pokemonsData = JSON.parse(localStorage.getItem('pokemonobjects')) || [];
+    createOutput('fav', 'favContainer', pokemonsData);
 }
 
 /**
@@ -247,19 +255,18 @@ const getFavoritePokemons = () => {
  * @returns 
  */
 const removePokemon = (event) => {
-    console.log(event.target);
 
     event.preventDefault();
     const pokeID = event.target.dataset.id;
 
     // Get previous data OR an empty array
-    const storageData = JSON.parse(localStorage.getItem('pokemonlist')) || [];
+    const storageObjects = JSON.parse(localStorage.getItem('pokemonobjects')) || [];
 
     // remove the pokemon
-    storageData.splice(pokeID, 1);
+    storageObjects.splice(pokeID, 1);
 
     // Set item to a stringified version of an array with the old and new tasks
-    localStorage.setItem('pokemonlist', JSON.stringify(storageData));
+    localStorage.setItem('pokemonobjects', JSON.stringify(storageObjects));
 
     getFavoritePokemons();
 }
@@ -273,35 +280,26 @@ const savePokemon = (event) => {
     event.preventDefault();
 
 
-    const pokeID = event.target.dataset.id;
-    const pokeName = event.target.dataset.name;
+    const pokeID = currentItem.id;
+    const pokeName = currentItem.name;
 
     // Get previous data OR an empty array
-    const previousData = JSON.parse(localStorage.getItem('pokemonlist')) || [];
     const previousObjects = JSON.parse(localStorage.getItem('pokemonobjects')) || [];
     // no duplicates allowed!
-    if (previousData.some((poke) => poke.id === pokeID)) {
-        //alert(pokeName + ' is already in your list')
+    const elementExists = previousObjects.find((poke) => poke.id === pokeID);
+    console.log(elementExists);
+    if (elementExists) {
+        elementExists.comment = document.getElementById('comment').value;
+        localStorage.setItem('pokemonobjects', JSON.stringify(previousObjects));
         return;
-    } else {
-        //alert(pokeName + ' has been remembered')
     }
 
-    // the data to save (stored in button)
-    const pokeData = event.target.dataset;
-
     // add time saved
-    pokeData.timestamp = Date.now();
+    currentItem.timestamp = Date.now();
     //add comment
-    pokeData.comment = document.getElementById('comment').value;
-
-    // add time saved
-    previousObjects.timestamp = Date.now();
-    //add comment
-    previousObjects.comment = document.getElementById('comment').value;
+    currentItem.comment = document.getElementById('comment').value;
 
     // Set item to a stringified version of an array with the old and new tasks
-    localStorage.setItem('pokemonlist', JSON.stringify([...previousData, pokeData]));
     localStorage.setItem('pokemonobjects', JSON.stringify([...previousObjects, currentItem]));
 
     getFavoritePokemons();
@@ -334,6 +332,7 @@ const initSortingSelects = () => {
         sortingSelects[i].addEventListener('change', (event) => {
             sortBy = document.getElementById('sortBySelector').value;
             sortOrder = document.getElementById('sortOrderSelector').value;
+
             getFavoritePokemons();
         }, false);
     }
@@ -347,6 +346,12 @@ const initPokeLinks = () => {
     for (let i = 0; i < pokeLinks.length; i++) {
         pokeLinks[i].addEventListener('click', getPokemonByUrl, false);
     }
+
+    const pokeShow = document.getElementsByClassName("pokeshow");
+    for (let i = 0; i < pokeShow.length; i++) {
+        pokeShow[i].addEventListener('click', getPokemonFromStorage, false);
+    }
+
     const pokeRemoves = document.getElementsByClassName("pokeremove");
     for (let i = 0; i < pokeRemoves.length; i++) {
         pokeRemoves[i].addEventListener('click', removePokemon, false);
@@ -368,10 +373,12 @@ const initSearch = () => {
     }, false);
 }
 
+/**
+ * initializes the search
+ */
 const initResetButton = () => {
     document.getElementById('resetBtn').addEventListener('click', (event) => {
         event.preventDefault();
-        console.log('yep');
         getPokemonsByUrl('list', 'outputContainer', 'https://pokeapi.co/api/v2/pokemon/?offset=' + currentOffset + '&limit=' + currentLimit);
     }, false)
 }
