@@ -5,6 +5,7 @@ let currentLimit = 10;
 let sortBy = 'timestamp';
 let sortOrder = 'desc';
 let currentItem = {};
+let pageInitialized = false;
 
 const baseUrlForPokemon = 'https://pokeapi.co/api/v2/pokemon/';
 
@@ -119,16 +120,17 @@ const createOutput = (type = 'list', containerID = '', results = null, isSearchR
         `;
 
         // abilities
+        outputContainer.innerHTML += '<h3 class="text-2xl">abilities</h3>'
         let abilityList = '';
         for (let ability of results.abilities) {
             abilityList += `<li>${ability.ability.name}</li>`;
         }
-        outputContainer.innerHTML += `<ul>${abilityList}</ul>`;
+        outputContainer.innerHTML += `<ul class="list-decimal pl-5">${abilityList}</ul>`;
 
         outputContainer.innerHTML += `
         <div class="flex flex-col">
             <label for="comment">your comment</label>
-            <textarea name="comment" id="comment" class="rounded" placeholder="please enter your comment">${(results.comment) ? results.comment : ''}</textarea>
+            <textarea name="comment" id="comment" class="rounded" placeholder="leave a comment">${(results.comment) ? results.comment : ''}</textarea>
             <button 
                 id="save-btn" class="remember poke-button poke-button-green">
                     remember / save '${results.name}'
@@ -409,3 +411,13 @@ const arraySort = (arr = [], sortBy = 'name', order = 'asc') => {
         return arr.sort((b, a) => (a[sortBy] > b[sortBy]) ? 1 : ((b[sortBy] > a[sortBy]) ? -1 : 0));
     }
 }
+
+
+let loadListener = window.addEventListener('load', function () {
+    // alert("It's loaded!");
+
+    if (!pageInitialized) {
+        initPage();
+        pageInitialized = true;
+    }
+}, false)
