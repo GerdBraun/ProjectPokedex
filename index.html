@@ -60,10 +60,10 @@
                 */
             }
           </style>
-          <style type="text/css">
-            .loading {
-                background-color: red;
-            }
+        <style type="text/css">
+            /* .loading {
+                opacity: .25;
+            } */
           </style>
     </head>
     <body>
@@ -79,17 +79,19 @@
                     <label for="searchTerm">Search: </label>
                     <input type="text" name="searchTerm" id="searchTerm">
                     <a href="#" id="searchBtn"
-                        class="poke-button poke-button-green" onclick="page.pokemonlist.search(event)">go</a>
-                    <a href="#" id="resetBtnTop"
                         class="poke-button poke-button-green"
-                        onclick="page.pokemonlist.reset(event)" data-complete="true">reset</a>
+                        onclick="page.pokemonlist.search(event)">go</a>
+                    <a href="index.html" id="resetBtnTop"
+                        class="poke-button poke-button-green"
+                        onclick="page.pokemonlist.reset(event)"
+                        data-complete="true">reset</a>
 
                 </form>
             </section>
         </header>
 
         <section
-            class="py-8 px-4 mx-auto max-w-screen-xl lg:px-6 grid grid-cols-2 gap-8">
+            class="py-8 px-4 mx-auto max-w-screen-xl lg:px-6 md:grid md:grid-cols-2 gap-8">
 
             <section class>
                 <h2
@@ -101,7 +103,7 @@
                 </div>
             </section>
 
-            <section class="sticky top-0">
+            <section class="md:sticky md:top-0">
                 <h2
                     class="mb-4 text-4xl font-extrabold tracking-tight leading-none text-grey-800 md:text-2xl lg:text-4xl dark:text-white">
                     Poke-Details
@@ -117,22 +119,30 @@
                     Poke-Favs
                 </h2>
                 <div>
-                    <form class="flex justify-between items-center mb-3">
-                        <label for="sortBySelector">Sort by: </label>
-                        <select name="sortBy" id="sortBySelector"
-                            class="sortBy" onchange="page.favorites.sort(event)">
-                            <option value="timestamp"
-                                selected>timestamp</option>
-                            <option value="name">name</option>
-                        </select>
+                    <form
+                        class="md:flex md:justify-between md:items-center mb-3">
+                        <div class="flex justify-between items-center gap-3">
+                            <label for="sortBySelector">Sort by: </label>
+                            <select name="sortBy" id="sortBySelector"
+                                class="sortBy"
+                                onchange="page.favorites.sort(event)">
+                                <option value="timestamp"
+                                    selected>timestamp</option>
+                                <option value="name">name</option>
+                            </select>
+                        </div>
 
-                        <label for="sortOrderSelector">Sorting order: </label>
-                        <select name="sortOrder" id="sortOrderSelector"
-                            class="sortBy" onchange="page.favorites.sort(event)">
-                            <option value="desc"
-                                selected>descending</option>
-                            <option value="asc">ascending</option>
-                        </select>
+                        <div class="flex justify-between items-center gap-3">
+                            <label for="sortOrderSelector">Sorting order:
+                            </label>
+                            <select name="sortOrder" id="sortOrderSelector"
+                                class="sortBy"
+                                onchange="page.favorites.sort(event)">
+                                <option value="desc"
+                                    selected>descending</option>
+                                <option value="asc">ascending</option>
+                            </select>
+                        </div>
 
                     </form> </div>
                 <div class="flex flex-col justify-between">
