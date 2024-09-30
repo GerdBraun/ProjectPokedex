@@ -1,6 +1,6 @@
 /**
  * ToDos
- * seewhat happens when saving pokemon & trying to view it
+ * filter list, sort list
  */
 
 
@@ -268,8 +268,9 @@ const page = {
            */
         reset: (event = null) => {
             console.log('called: page.pokemonlist.reset');
-            if (event) {
-                event.preventDefault();
+            event.preventDefault();
+            if(event.target.dataset.complete){
+                page.pokemonlist.listOffset = 0;
             }
             createOutput('list', 'outputContainer', page.pokemonlist.pokemonsCompleteObject.results.slice(page.pokemonlist.listOffset, page.pokemonlist.listOffset + page.pokemonlist.listLength))
         },
@@ -368,6 +369,11 @@ const page = {
             // Get previous data OR an empty array
             const previousObjects = JSON.parse(localStorage.getItem('pokemonobjects')) || [];
 
+            // add time saved
+            page.single.storedPokemon.timestamp = Date.now();
+            //add comment
+            page.single.storedPokemon.comment = document.querySelector('#comment').value || '';
+
             // no duplicates allowed!
             const elementExists = previousObjects.find((poke) => poke.id === pokeID);
             if (elementExists) {
@@ -375,11 +381,6 @@ const page = {
                 localStorage.setItem('pokemonobjects', JSON.stringify(previousObjects));
                 return;
             }
-
-            // add time saved
-            page.single.storedPokemon.timestamp = Date.now();
-            //add comment
-            page.single.storedPokemon.comment = document.querySelector('#comment').value || '';
 
             // Set item to a stringified version of an array with the new values
             localStorage.setItem('pokemonobjects', JSON.stringify([...previousObjects, page.single.storedPokemon]));
