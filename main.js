@@ -45,12 +45,16 @@ const createOutput = (type = 'list', containerID = '', results = null, isSearchR
         outputContainer.innerHTML += `<ul>${pokeList}</ul>`;
 
         if (!isSearchResult) {
+            let toCount = page.pokemonlist.listOffset + page.pokemonlist.listLength;
+            toCount = (toCount>page.pokemonlist.pokemonsCompleteCount) ? page.pokemonlist.pokemonsCompleteCount:toCount;
             outputContainer.innerHTML += `
             <div id="pokenext" class="flex justify-between  items-center py-3">
-                <p>showing pokemons ${page.pokemonlist.listOffset + 1} to ${page.pokemonlist.listOffset + page.pokemonlist.listLength} of ${page.pokemonlist.pokemonsCompleteCount}</p>
+                <p>showing pokemons ${page.pokemonlist.listOffset + 1} to ${toCount} of ${page.pokemonlist.pokemonsCompleteCount}</p>
                 <div>
+                    <a href="#" class="datalink poke-button poke-button-green ${page.pokemonlist.listOffset >= page.pokemonlist.listLength ? 'visible' : 'hidden'}" title="get previous ${page.pokemonlist.listLength}" data-multiplier="0" onclick="page.pokemonlist.getPrevNext(event)">|<</a>
                     <a href="#" class="datalink poke-button poke-button-green ${page.pokemonlist.listOffset >= page.pokemonlist.listLength ? 'visible' : 'hidden'}" title="get previous ${page.pokemonlist.listLength}" data-multiplier="-1" onclick="page.pokemonlist.getPrevNext(event)"><</a>
-                    <a href="#" class="datalink poke-button poke-button-green ${(page.pokemonlist.listOffset < page.pokemonlist.pokemonsCompleteCount) ? 'visible' : 'hidden'}" title="get next ${page.pokemonlist.listLength}" data-multiplier="1" onclick="page.pokemonlist.getPrevNext(event)">></a>
+                    <a href="#" class="datalink poke-button poke-button-green ${(page.pokemonlist.pokemonsCompleteCount > page.pokemonlist.listOffset + page.pokemonlist.listLength) ? 'visible' : 'hidden'}" title="get next ${page.pokemonlist.listLength}" data-multiplier="1" onclick="page.pokemonlist.getPrevNext(event)">></a>
+                    <a href="#" class="datalink poke-button poke-button-green ${(page.pokemonlist.pokemonsCompleteCount > page.pokemonlist.listOffset + page.pokemonlist.listLength) ? 'visible' : 'hidden'}" title="get next ${page.pokemonlist.listLength}" data-multiplier="x" onclick="page.pokemonlist.getPrevNext(event)">>|</a>
                 </div>
             </div>        
         `;
@@ -164,9 +168,7 @@ const page = {
         page.favorites.getList();
 
         const urlParams = new URLSearchParams(window.location.search);
-        console.log(urlParams);
         if(urlParams && urlParams.get('searchTerm') && urlParams.get('searchTerm')!==''){
-            console.log(urlParams.get('searchTerm'));
             document.querySelector('#searchTerm').value = urlParams.get('searchTerm');
             page.pokemonlist.search(event);
             return;
@@ -267,7 +269,14 @@ const page = {
             document.querySelector('#outputContainer').classList.add('loading');
 
             const multiplier = event.target.dataset.multiplier;
-            page.pokemonlist.listOffset += page.pokemonlist.listLength * multiplier;
+            if(multiplier === '0'){
+                page.pokemonlist.listOffset = 0;
+            }else if(multiplier === 'x'){
+                // page.pokemonlist.listOffset = page.pokemonlist.pokemonsCompleteCount % page.pokemonlist.listLength;
+                page.pokemonlist.listOffset = parseInt(page.pokemonlist.pokemonsCompleteCount / page.pokemonlist.listLength) * page.pokemonlist.listLength;
+            }else{
+                page.pokemonlist.listOffset += page.pokemonlist.listLength * multiplier;
+            }
 
             createOutput('list', 'outputContainer', page.pokemonlist.pokemonsCompleteObject.results.slice(page.pokemonlist.listOffset, page.pokemonlist.listOffset + page.pokemonlist.listLength));
         },
