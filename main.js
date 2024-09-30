@@ -36,7 +36,7 @@ const createOutput = (type = 'list', containerID = '', results = null, isSearchR
         let pokeList = '';
         for (let pokemon of results) {
             pokeList += `
-                <li class="flex p-1 text-gray-800 bg-gray-100 rounded border border-gray-800 justify-between items-center">
+                <li class="flex p-2 pl-3 text-gray-800 bg-white rounded shadow mb-1 justify-between items-center">
                     <span>${pokemon.name}</span>
                     <a href="${pokemon.url}" class="pokelink poke-button poke-button-green" onclick="return page.single.getByUrl(event)">view</a>
                 </li>
@@ -72,7 +72,7 @@ const createOutput = (type = 'list', containerID = '', results = null, isSearchR
                 </div>
                 <div>
                     <h3 class="text-2xl">war cry</h3>
-                    <audio controls src="${results.cries.latest}"></audio>
+                    <audio controls src="${results.cries.latest}" class="max-w-28"></audio>
                 <div>
             </div>
         `;
@@ -111,7 +111,7 @@ const createOutput = (type = 'list', containerID = '', results = null, isSearchR
             const time = newDate.toLocaleString();
 
             pokelist += `
-                <li class="flex flex-col md:flex-row p-1 text-gray-800 bg-gray-100 rounded border border-gray-800 justify-between items-center">
+                <li class="flex p-2 text-gray-800 bg-white rounded shadow mb-1 justify-between items-center">
                     <figure class="bg-white rounded relative">
                         <img src="${pokemon.sprites.front_default}" alt="${pokemon.name}" title="${pokemon.name}">
                         <figcaption class="text-sm absolute bottom-0 w-full text-center bg-white bg-opacity-50">${pokemon.name}</figcaption>

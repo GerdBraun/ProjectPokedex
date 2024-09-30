@@ -64,11 +64,29 @@
             /* .loading {
                 opacity: .25;
             } */
+            audio::-webkit-media-controls-volume-slider {
+            display: none !important;
+            }
+
+            audio::-webkit-media-controls-timeline-container {
+            display: none !important;
+            }
+
+            audio::-webkit-media-controls-time-remaining-display {
+            display: none !important;
+            }
+
+            audio::-webkit-media-controls-timeline {
+            display: none !important;
+            }
           </style>
     </head>
-    <body>
+    <body class="bg-gray-200">
         <header
-            class="py-8 px-4 mx-auto max-w-screen-xl lg:px-6">
+            class="py-8 px-4 mx-auto max-w-screen-xl lg:px-6 ">
+
+
+            <div class="flex-1 mb-6 flex justify-between items-center bg-gray-50 rounded-lg shadow-xl p-6">
             <h1
                 class="mb-4 text-4xl font-extrabold tracking-tight leading-none text-grey-800 md:text-5xl lg:text-6xl dark:text-white center">
                 Pokedex
@@ -88,67 +106,74 @@
 
                 </form>
             </section>
+        </div>
         </header>
 
         <section
-            class="py-8 px-4 mx-auto max-w-screen-xl lg:px-6 md:grid md:grid-cols-2 gap-8">
+            class="py-8 px-4 mx-auto max-w-screen-xl lg:px-6 md:flex gap-8 md:items-stretch">
 
-            <section class>
-                <h2
-                    class="mb-4 text-4xl font-extrabold tracking-tight leading-none text-grey-800 md:text-2xl lg:text-4xl dark:text-white">
-                    Poke-list
-                </h2>
-                <div class="flex flex-col justify-between">
+            <section
+                class="flex-1 mb-6 flex flex-col justify-between bg-gray-50 rounded-lg shadow-xl p-6">
+                <div
+                    class>
+                    <h2
+                        class="mb-4 text-4xl font-extrabold tracking-tight leading-none text-grey-800 md:text-2xl lg:text-4xl dark:text-white">
+                        Poke-list
+                    </h2>
                     <div id="outputContainer" class></div>
                 </div>
             </section>
 
-            <section class="md:sticky md:top-0">
-                <h2
-                    class="mb-4 text-4xl font-extrabold tracking-tight leading-none text-grey-800 md:text-2xl lg:text-4xl dark:text-white">
-                    Poke-Details
-                </h2>
-                <div class="flex flex-col justify-between">
-                    <div id="detailsContainer"></div>
+            <section
+                class="flex-1 mb-6 flex flex-col justify-between bg-gray-50 rounded-lg shadow-xl p-6">
+                <div
+                    class>
+                    <h2
+                        class="mb-4 text-4xl font-extrabold tracking-tight leading-none text-grey-800 md:text-2xl lg:text-4xl dark:text-white">
+                        Poke-Details
+                    </h2>
+                    <div id="detailsContainer" class></div>
                 </div>
             </section>
 
-            <section class>
+        </section>
+
+        <section
+            class="py-8 px-4 mx-auto max-w-screen-xl lg:px-6 flex gap-8  items-stretch">
+            <div
+                class="flex-1 flex flex-col justify-between bg-gray-50 rounded-lg shadow-xl p-6">
                 <h2
                     class="mb-4 text-4xl font-extrabold tracking-tight leading-none text-grey-800 md:text-2xl lg:text-4xl dark:text-white">
                     Poke-Favs
                 </h2>
-                <div>
-                    <form
-                        class="md:flex md:justify-between md:items-center mb-3">
-                        <div class="flex justify-between items-center gap-3">
-                            <label for="sortBySelector">Sort by: </label>
-                            <select name="sortBy" id="sortBySelector"
-                                class="sortBy"
-                                onchange="page.favorites.sort(event)">
-                                <option value="timestamp"
-                                    selected>timestamp</option>
-                                <option value="name">name</option>
-                            </select>
-                        </div>
+                <div class="md:flex md:justify-between md:items-center mb-3">
+                    <div class="flex justify-between items-center gap-3">
+                        <label for="sortBySelector">Sort by: </label>
+                        <select name="sortBy" id="sortBySelector"
+                            class="sortBy"
+                            onchange="page.favorites.sort(event)">
+                            <option value="timestamp"
+                                selected>timestamp</option>
+                            <option value="name">name</option>
+                        </select>
+                    </div>
 
-                        <div class="flex justify-between items-center gap-3">
-                            <label for="sortOrderSelector">Sorting order:
-                            </label>
-                            <select name="sortOrder" id="sortOrderSelector"
-                                class="sortBy"
-                                onchange="page.favorites.sort(event)">
-                                <option value="desc"
-                                    selected>descending</option>
-                                <option value="asc">ascending</option>
-                            </select>
-                        </div>
-
-                    </form> </div>
+                    <div class="flex justify-between items-center gap-3">
+                        <label for="sortOrderSelector">Sorting order:
+                        </label>
+                        <select name="sortOrder" id="sortOrderSelector"
+                            class="sortBy"
+                            onchange="page.favorites.sort(event)">
+                            <option value="desc"
+                                selected>descending</option>
+                            <option value="asc">ascending</option>
+                        </select>
+                    </div>
+                </div>
                 <div class="flex flex-col justify-between">
                     <div id="favContainer"></div>
                 </div>
-            </section>
+            </div>
         </section>
     </body>
 </html>
