@@ -3,7 +3,7 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Document</title>
+        <title>Pokedex</title>
         <script
             src="https://cdn.tailwindcss.com?plugins=forms,typography,aspect-ratio,container-queries"></script>
         <script src="tailwind.config.js"></script>
@@ -79,10 +79,10 @@
                     <label for="searchTerm">Search: </label>
                     <input type="text" name="searchTerm" id="searchTerm">
                     <a href="#" id="searchBtn"
-                        class="poke-button poke-button-green" onclick="searchPokemon(event)">go</a>
+                        class="poke-button poke-button-green" onclick="page.pokemonlist.search(event)">go</a>
                     <a href="#" id="resetBtnTop"
                         class="poke-button poke-button-green"
-                        onclick="resetList(event)">dismiss</a>
+                        onclick="page.pokemonlist.reset(event)">dismiss</a>
 
                 </form>
             </section>
@@ -120,7 +120,7 @@
                     <form class="flex justify-between items-center mb-3">
                         <label for="sortBySelector">Sort by: </label>
                         <select name="sortBy" id="sortBySelector"
-                            class="sortBy" onchange="sortList(event)">
+                            class="sortBy" onchange="page.favorites.sort(event)">
                             <option value="timestamp"
                                 selected>timestamp</option>
                             <option value="name">name</option>
@@ -128,7 +128,7 @@
 
                         <label for="sortOrderSelector">Sorting order: </label>
                         <select name="sortOrder" id="sortOrderSelector"
-                            class="sortBy" onchange="sortList(event)">
+                            class="sortBy" onchange="page.favorites.sort(event)">
                             <option value="desc"
                                 selected>descending</option>
                             <option value="asc">ascending</option>
