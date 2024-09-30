@@ -60,8 +60,8 @@ const createOutput = (type = 'list', containerID = '', results = null, isSearchR
         page.single.storedPokemon = results;
 
         outputContainer.innerHTML += `
-            <h2 class="text-3xl">${results.name}</h2>
-            <div class="grid grid-cols-2">
+            <h2 class="text-3xl">${results.name} <span class="">${results.timestamp ? '(favorite)' : ''}</span></h2>
+            <div class="md:grid md:grid-cols-2">
                 <div>
                     <h3 class="text-2xl">aspect</h3>
                     <img src="${results.sprites.front_default}" alt="${results.name}" title="${results.name}">
@@ -107,7 +107,7 @@ const createOutput = (type = 'list', containerID = '', results = null, isSearchR
             const time = newDate.toLocaleString();
 
             pokelist += `
-                <li class="flex p-1 text-gray-800 bg-gray-100 rounded border border-gray-800 justify-between items-center">
+                <li class="flex flex-col md:flex-row p-1 text-gray-800 bg-gray-100 rounded border border-gray-800 justify-between items-center">
                     <figure class="bg-white rounded relative">
                         <img src="${pokemon.sprites.front_default}" alt="${pokemon.name}" title="${pokemon.name}">
                         <figcaption class="text-sm absolute bottom-0 w-full text-center bg-white bg-opacity-50">${pokemon.name}</figcaption>
@@ -160,7 +160,17 @@ const page = {
      */
     initialize: () => {
         console.log('called: page.initialize');
+
         page.favorites.getList();
+
+        const urlParams = new URLSearchParams(window.location.search);
+        console.log(urlParams);
+        if(urlParams && urlParams.get('searchTerm') && urlParams.get('searchTerm')!==''){
+            console.log(urlParams.get('searchTerm'));
+            document.querySelector('#searchTerm').value = urlParams.get('searchTerm');
+            page.pokemonlist.search(event);
+            return;
+        }
 
         // make the initial call
         page.pokemonlist.getByUrl('', '', '', false, 1);
@@ -268,10 +278,14 @@ const page = {
            */
         reset: (event = null) => {
             console.log('called: page.pokemonlist.reset');
+
+            window.location.href = 'index.html';
+
             event.preventDefault();
             if(event.target.dataset.complete){
                 page.pokemonlist.listOffset = 0;
             }
+            document.querySelector('#searchTerm').value = '';
             createOutput('list', 'outputContainer', page.pokemonlist.pokemonsCompleteObject.results.slice(page.pokemonlist.listOffset, page.pokemonlist.listOffset + page.pokemonlist.listLength))
         },
 
