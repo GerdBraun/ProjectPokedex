@@ -9,72 +9,6 @@
  */
 let isInitializedPage = false;
 
-/**
- * retrieves pokemon list
- * @param {String} type 
- * @param {String} containerID 
- * @param {String} url 
- * @param {Boolean} isSearchResult 
- * @param {Number} initStep 
- */
-const getPokemonsByUrl = (type, containerID, url, isSearchResult = false, initStep = 0) => {
-
-    if (initStep > 0) {
-        switch (initStep) {
-            case 1:
-                // load one pokemon to get the total number of entries
-                url = page.baseUrlForPokemon + '?offset=0&limit=1';
-            case 2:
-                // load the complete list of pokemons available
-                url = page.baseUrlForPokemon + '?offset=0&limit=' + page.pokemonlist.pokemonsCompleteCount;
-                type = 'list';
-                containerID = 'outputContainer';
-        }
-    }
-
-    const data = '';
-    const xhr = new XMLHttpRequest();
-    xhr.withCredentials = false;
-
-    // pass needed  data to xhr
-    xhr.data = {
-        type: type,
-        containerID: containerID,
-        isSearchResult: isSearchResult,
-        initStep: initStep,
-    };
-
-    xhr.addEventListener("readystatechange", function (x) {
-        if (this.readyState === this.DONE) {
-            if (this.status === 404) {
-                page.pokemonlist.createReport('error', this.data.containerID, 'Error 404');
-                return;
-            }
-
-            if (this.data.initStep) {
-                page.pokemonlist.pokemonsCompleteObject = JSON.parse(this.responseText);
-                page.pokemonlist.sort(page.pokemonlist.pokemonsCompleteObject.results);
-
-                page.pokemonlist.pokemonsCompleteCount = page.pokemonlist.pokemonsCompleteObject.count;
-
-                if (this.data.initStep === 1) {
-                    getPokemonsByUrl('', '', '', false, 2);
-                } else {
-                    const dataObject = page.pokemonlist.pokemonsCompleteObject.results;
-                    createOutput(this.data.type, this.data.containerID, dataObject.slice(0, page.pokemonlist.listLength), false);
-                }
-                return;
-            }
-
-            // create output
-            createOutput(this.data.type, this.data.containerID, JSON.parse(this.responseText), this.data.isSearchResult);
-        }
-    });
-
-    xhr.open("GET", url);
-
-    xhr.send(data);
-}
 
 /**
  * 
@@ -115,8 +49,8 @@ const createOutput = (type = 'list', containerID = '', results = null, isSearchR
             <div id="pokenext" class="flex justify-between  items-center py-3">
                 <p>showing pokemons ${page.pokemonlist.listOffset + 1} to ${page.pokemonlist.listOffset + page.pokemonlist.listLength} of ${page.pokemonlist.pokemonsCompleteCount}</p>
                 <div>
-                    <a href="#" class="datalink poke-button poke-button-green ${page.pokemonlist.listOffset >= page.pokemonlist.listLength ? 'visible' : 'hidden'}" title="get previous ${page.pokemonlist.listLength}" data-multiplier="-1" onclick="getDatasetPrevNext(event)"><</a>
-                    <a href="#" class="datalink poke-button poke-button-green ${(page.pokemonlist.listOffset < page.pokemonlist.pokemonsCompleteCount) ? 'visible' : 'hidden'}" title="get next ${page.pokemonlist.listLength}" data-multiplier="1" onclick="getDatasetPrevNext(event)">></a>
+                    <a href="#" class="datalink poke-button poke-button-green ${page.pokemonlist.listOffset >= page.pokemonlist.listLength ? 'visible' : 'hidden'}" title="get previous ${page.pokemonlist.listLength}" data-multiplier="-1" onclick="page.pokemonlist.getPrevNext(event)"><</a>
+                    <a href="#" class="datalink poke-button poke-button-green ${(page.pokemonlist.listOffset < page.pokemonlist.pokemonsCompleteCount) ? 'visible' : 'hidden'}" title="get next ${page.pokemonlist.listLength}" data-multiplier="1" onclick="page.pokemonlist.getPrevNext(event)">></a>
                 </div>
             </div>        
         `;
@@ -124,8 +58,6 @@ const createOutput = (type = 'list', containerID = '', results = null, isSearchR
     } else if (type === 'single') {
         // for saving purposes
         page.single.storedPokemon = results;
-
-        console.log(results);
 
         outputContainer.innerHTML += `
             <h2 class="text-3xl">${results.name}</h2>
@@ -154,7 +86,7 @@ const createOutput = (type = 'list', containerID = '', results = null, isSearchR
             <label for="comment">your comment</label>
             <textarea name="comment" id="comment" class="rounded" placeholder="leave a comment">${(results.comment) ? results.comment : ''}</textarea>
             <button 
-                id="save-btn" class="remember poke-button poke-button-green" onclick="savePokemonToFavorites(event)">
+                id="save-btn" class="remember poke-button poke-button-green" onclick="page.favorites.addSingle(event)">
                     remember / save '${results.name}'
                 </button>
         </div>`;
@@ -185,7 +117,7 @@ const createOutput = (type = 'list', containerID = '', results = null, isSearchR
                     </span>
                     <div class="flex">
                         <a class="pokeshow poke-button poke-button-green" href="${page.baseUrlForPokemon + pokemon.id}" data-id="${i}" onclick="page.favorites.getSingle(event)">view</a>
-                        <a class="pokeremove poke-button poke-button-highlight" href="#" data-id="${i}" onclick="removePokemonFromFavorites(event)">remove</a>
+                        <a class="pokeremove poke-button poke-button-highlight" href="#" data-id="${i}" onclick="page.favorites.removeSingle(event)">remove</a>
                     </div>
                 </li>
             `;
@@ -195,89 +127,6 @@ const createOutput = (type = 'list', containerID = '', results = null, isSearchR
 
     document.querySelector('#' + containerID).classList.remove('loading');
 }
-
-/**
- * gets a new dataset as a slice from the loaded pokemonsCompleteObject
- * @param {Event} event called by 'prev' / 'next' buttons (click)
- */
-const getDatasetPrevNext = (event) => {
-    event.preventDefault();
-    document.querySelector('#outputContainer').classList.add('loading');
-
-    const multiplier = event.target.dataset.multiplier;
-    page.pokemonlist.listOffset += page.pokemonlist.listLength * multiplier;
-
-    createOutput('list', 'outputContainer', page.pokemonlist.pokemonsCompleteObject.results.slice(page.pokemonlist.listOffset, page.pokemonlist.listOffset + page.pokemonlist.listLength));
-}
-
-
-/**
- * retrieve  saved pokemons from local storage
- */
-const getFavoritePokemons = () => {
-    const pokemonsData = JSON.parse(localStorage.getItem('pokemonobjects')) || [];
-    page.favorites.list = pokemonsData;
-    createOutput('fav', 'favContainer', pokemonsData);
-}
-
-/**
- * remove single pokemon from local storage
- * @param {Event} event mouse event (click)
- * @returns 
- */
-const removePokemonFromFavorites = (event) => {
-
-    event.preventDefault();
-    const pokeID = event.target.dataset.id;
-
-    // get previous data OR an empty array
-    const storageObjects = JSON.parse(localStorage.getItem('pokemonobjects')) || [];
-
-    // remove the pokemon
-    storageObjects.splice(pokeID, 1);
-
-    // store the favorite list
-    localStorage.setItem('pokemonobjects', JSON.stringify(storageObjects));
-
-    getFavoritePokemons();
-}
-
-/**
- * save single pokemon to local storage
- * @param {Event} event mouse event (click)
- * @returns 
- */
-const savePokemonToFavorites = (event) => {
-    event.preventDefault();
-
-
-    const pokeID = page.single.storedPokemon.id;
-    const pokeName = page.single.storedPokemon.name;
-
-    // Get previous data OR an empty array
-    const previousObjects = JSON.parse(localStorage.getItem('pokemonobjects')) || [];
-
-    // no duplicates allowed!
-    const elementExists = previousObjects.find((poke) => poke.id === pokeID);
-    if (elementExists) {
-        elementExists.comment = document.querySelector('#comment').value;
-        localStorage.setItem('pokemonobjects', JSON.stringify(previousObjects));
-        return;
-    }
-
-    // add time saved
-    page.single.storedPokemon.timestamp = Date.now();
-    //add comment
-    page.single.storedPokemon.comment = document.querySelector('#comment').value || '';
-
-    // Set item to a stringified version of an array with the new values
-    localStorage.setItem('pokemonobjects', JSON.stringify([...previousObjects, page.single.storedPokemon]));
-
-    getFavoritePokemons();
-}
-
-
-
 
 
 /**
@@ -292,9 +141,13 @@ const loadListener = window.addEventListener('load', () => {
 
 
 /**
- * trying to fit anything in a page object
+ * fitting everything into a page object
  */
 
+
+/**
+ * the object containing anythig related to logic
+ */
 const page = {
     /**
      * the base-url for xhr calls
@@ -310,7 +163,7 @@ const page = {
         page.favorites.getList();
 
         // make the initial call
-        getPokemonsByUrl('', '', '', false, 1);
+        page.pokemonlist.getByUrl('', '', '', false, 1);
     },
 
     pokemonlist: {
@@ -336,7 +189,7 @@ const page = {
          * @param {Number} initStep 
          */
         getByUrl: (type, containerID, url, isSearchResult = false, initStep = 0) => {
-            console.log('page.pokemonlist.getByUrl');
+            console.log('called: page.pokemonlist.getByUrl');
             if (initStep > 0) {
                 switch (initStep) {
                     case 1:
@@ -376,7 +229,7 @@ const page = {
                         page.pokemonlist.pokemonsCompleteCount = page.pokemonlist.pokemonsCompleteObject.count;
 
                         if (this.data.initStep === 1) {
-                            getPokemonsByUrl('', '', '', false, 2);
+                            page.pokemonlist.getByUrl('', '', '', false, 2);
                         } else {
                             const dataObject = page.pokemonlist.pokemonsCompleteObject.results;
                             createOutput(this.data.type, this.data.containerID, dataObject.slice(0, page.pokemonlist.listLength), false);
@@ -395,9 +248,24 @@ const page = {
         },
 
         /**
-          * resets the pokemon list
-          * @param {Event} event mouse event (click)
-          */
+        * gets a new dataset as a slice from the loaded pokemonsCompleteObject
+        * @param {Event} event called by 'prev' / 'next' buttons (click)
+        */
+        getPrevNext: (event) => {
+            console.log('called: page.pokemonlist.getPrevNext');
+            event.preventDefault();
+            document.querySelector('#outputContainer').classList.add('loading');
+
+            const multiplier = event.target.dataset.multiplier;
+            page.pokemonlist.listOffset += page.pokemonlist.listLength * multiplier;
+
+            createOutput('list', 'outputContainer', page.pokemonlist.pokemonsCompleteObject.results.slice(page.pokemonlist.listOffset, page.pokemonlist.listOffset + page.pokemonlist.listLength));
+        },
+
+        /**
+           * resets the pokemon list
+           * @param {Event} event mouse event (click)
+           */
         reset: (event = null) => {
             console.log('called: page.pokemonlist.reset');
             if (event) {
@@ -413,6 +281,7 @@ const page = {
          * @param {String} text the text to show
          */
         createReport: (type, containerID, text = 'Error 404') => {
+            console.log('called: page.pokemonlist.createReport');
             const outputContainer = document.querySelector('#' + containerID);
 
             outputContainer.innerHTML = `
@@ -430,6 +299,7 @@ const page = {
         * @returns 
         */
         search: (event) => {
+            console.log('called: page.pokemonlist.search');
             event.preventDefault();
             const searchTerm = document.querySelector('#searchTerm').value;
             if (!searchTerm) {
@@ -437,7 +307,7 @@ const page = {
                 return;
             }
             console.log('searchTerm = ', searchTerm);
-            getPokemonsByUrl('list', 'outputContainer', page.baseUrlForPokemon + searchTerm, true);
+            page.pokemonlist.getByUrl('list', 'outputContainer', page.baseUrlForPokemon + searchTerm, true);
         },
 
         /**
@@ -467,9 +337,10 @@ const page = {
          * @param {Event} event mouse event (click)
          */
         getByUrl: (event) => {
+            console.log('called: page.single.getByUrl');
             event.preventDefault();
             document.querySelector('#' + page.single.container).classList.add('loading');
-            getPokemonsByUrl(page.single.type, page.single.container, event.target.href);
+            page.pokemonlist.getByUrl(page.single.type, page.single.container, event.target.href);
         },
     },
 
@@ -480,6 +351,63 @@ const page = {
         type: 'fav',
         container: 'favContainer',
         list: [],
+
+        /**
+         * save single pokemon to local storage
+         * @param {Event} event mouse event (click)
+         * @returns 
+         */
+        addSingle: (event) => {
+            console.log('called: page.favorites.addSingle');
+            event.preventDefault();
+
+
+            const pokeID = page.single.storedPokemon.id;
+            const pokeName = page.single.storedPokemon.name;
+
+            // Get previous data OR an empty array
+            const previousObjects = JSON.parse(localStorage.getItem('pokemonobjects')) || [];
+
+            // no duplicates allowed!
+            const elementExists = previousObjects.find((poke) => poke.id === pokeID);
+            if (elementExists) {
+                elementExists.comment = document.querySelector('#comment').value;
+                localStorage.setItem('pokemonobjects', JSON.stringify(previousObjects));
+                return;
+            }
+
+            // add time saved
+            page.single.storedPokemon.timestamp = Date.now();
+            //add comment
+            page.single.storedPokemon.comment = document.querySelector('#comment').value || '';
+
+            // Set item to a stringified version of an array with the new values
+            localStorage.setItem('pokemonobjects', JSON.stringify([...previousObjects, page.single.storedPokemon]));
+
+            page.favorites.getList();
+        },
+        /**
+         * remove single pokemon from local storage
+         * @param {Event} event mouse event (click)
+         * @returns 
+         */
+        removeSingle: (event) => {
+            console.log('called: page.favorites.removeSingle');
+
+            event.preventDefault();
+            const pokeID = event.target.dataset.id;
+
+            // get previous data OR an empty array
+            const storageObjects = JSON.parse(localStorage.getItem('pokemonobjects')) || [];
+
+            // remove the pokemon
+            storageObjects.splice(pokeID, 1);
+
+            // store the favorite list
+            localStorage.setItem('pokemonobjects', JSON.stringify(storageObjects));
+
+            page.favorites.getList();
+        },
 
         /**
          * get the list of pokemons from local storage
@@ -517,7 +445,7 @@ const page = {
             page.favorites.listSortBy = document.querySelector('#sortBySelector').value;
             page.favorites.listSortOrder = document.querySelector('#sortOrderSelector').value;
 
-            getFavoritePokemons();
+            page.favorites.getList();
         },
 
         /**
