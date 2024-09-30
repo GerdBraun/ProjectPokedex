@@ -1,22 +1,53 @@
 
-// variables
-let currentOffset = 0;
-let currentLimit = 10;
-let sortBy = 'timestamp';
-let sortOrder = 'desc';
-let currentItem = {};
-let pageInitialized = false;
-
+/**
+ * the base-url for xhr calls
+ */
 const baseUrlForPokemon = 'https://pokeapi.co/api/v2/pokemon/';
 
+/**
+ * vars used for displaying the pokemon list
+ */
+let listOffset = 0; // starting point for retrieving data
+let listLength = 10; // the number of pokemons to be displayed in the list
+let listSortBy = 'timestamp'; // values for s
+let listSortOrder = 'desc';
 
 /**
- * retrieves p
+ * complete pokemon vars
+ */
+let pokemonsCompleteCount = 0; // the total number of pokemons available
+let pokemonsCompleteObject = {}; // the complete object of pokemons retrieved by xhr
+
+/**
+ * storage for the currently selected pokemon object
+ */
+let currentItem = {};
+
+/**
+ * status of the page (used for preventing multiple page initialization on window.load)
+ */
+let isInitializedPage = false;
+
+/**
+ * retrieves pokemon list
  * @param {String} type 
  * @param {String} containerID 
  * @param {String} url 
+ * @param {Boolean} isSearchResult 
+ * @param {Number} initStep 
  */
-const getPokemonsByUrl = (type, containerID, url, isSearchResult = false) => {
+const getPokemonsByUrl = (type, containerID, url, isSearchResult = false, initStep = 0) => {
+    if (initStep > 0) {
+        switch (initStep) {
+            case 1:
+                url = baseUrlForPokemon + '?offset=0&limit=1';
+            case 2:
+                url = baseUrlForPokemon + '?offset=0&limit=' + pokemonsCompleteCount;
+                type = 'list';
+                containerID = 'outputContainer';
+        }
+    }
+
     const data = '';
     const xhr = new XMLHttpRequest();
     xhr.withCredentials = false;
@@ -26,12 +57,28 @@ const getPokemonsByUrl = (type, containerID, url, isSearchResult = false) => {
         type: type,
         containerID: containerID,
         isSearchResult: isSearchResult,
+        initStep: initStep,
     };
 
     xhr.addEventListener("readystatechange", function (x) {
         if (this.readyState === this.DONE) {
             if (this.status === 404) {
                 createReport('error', this.data.containerID, 'Error 404');
+                return;
+            }
+
+            if (this.data.initStep) {
+                pokemonsCompleteObject = JSON.parse(this.responseText);
+                arraySort(pokemonsCompleteObject.results);
+
+                pokemonsCompleteCount = pokemonsCompleteObject.count;
+
+                if (this.data.initStep === 1) {
+                    getPokemonsByUrl('', '', '', false, 2);
+                } else {
+                    const dataObject = pokemonsCompleteObject.results;
+                    createOutput(this.data.type, this.data.containerID, dataObject.slice(0, listLength), false);
+                }
                 return;
             }
 
@@ -57,26 +104,24 @@ const createOutput = (type = 'list', containerID = '', results = null, isSearchR
         const outputContainer = document.getElementById('outputContainer');
         outputContainer.innerHTML = '';
 
-        let res = {
-            results: [],
-            url: ''
-        };
+        const res = [];
 
         if (isSearchResult) {
             results.url = baseUrlForPokemon + results.id;
-            res.results.push(results);
+            res.push(results);
+            results = res;
             outputContainer.innerHTML += '<h3>Search results:</h3>';
         } else {
-            res = results;
+            //res.results.push(results);
         }
 
         // create list
         let pokeList = '';
-        for (let pokemon of res.results) {
+        for (let pokemon of results) {
             pokeList += `
                 <li class="flex p-1 text-gray-800 bg-gray-100 rounded border border-gray-800 justify-between items-center">
                     <span>${pokemon.name}</span>
-                    <a href="${pokemon.url}" class="pokelink poke-button poke-button-green">view</a>
+                    <a href="${pokemon.url}" class="pokelink poke-button poke-button-green" onclick="return getPokemonByUrl(event)">view</a>
                 </li>
             `;
         }
@@ -85,18 +130,14 @@ const createOutput = (type = 'list', containerID = '', results = null, isSearchR
         if (!isSearchResult) {
             outputContainer.innerHTML += `
             <div id="pokenext" class="flex justify-between  items-center py-3">
-                <p>showing pokemons ${currentOffset + 1} to ${currentOffset + currentLimit} of ${results.count}</p>
+                <p>showing pokemons ${listOffset + 1} to ${listOffset + listLength} of ${pokemonsCompleteCount}</p>
                 <div>
-                    <a href="${results.previous}" id="previouslink" class="datalink poke-button poke-button-green ${results.previous ? 'visible' : 'hidden'} previous" title="previous ${currentLimit}"><</a>
-                    <a href="${results.next}" id="nextlink" class="datalink poke-button poke-button-green ${results.next ? 'visible' : 'hidden'} next" title="next ${currentLimit}">></a>
+                    <a href="#" class="datalink poke-button poke-button-green ${listOffset >= listLength ? 'visible' : 'hidden'}" title="get previous ${listLength}" data-multiplier="-1" onclick="getDatasetPrevNext(event)"><</a>
+                    <a href="#" class="datalink poke-button poke-button-green ${(listOffset < pokemonsCompleteCount) ? 'visible' : 'hidden'}" title="get next ${listLength}" data-multiplier="1" onclick="getDatasetPrevNext(event)">></a>
                 </div>
             </div>        
         `;
         }
-
-        initPokeLinks();
-        initDataLinks();
-
     } else if (type === 'single') {
         const outputContainer = document.getElementById(containerID);
         outputContainer.innerHTML = '';
@@ -132,16 +173,14 @@ const createOutput = (type = 'list', containerID = '', results = null, isSearchR
             <label for="comment">your comment</label>
             <textarea name="comment" id="comment" class="rounded" placeholder="leave a comment">${(results.comment) ? results.comment : ''}</textarea>
             <button 
-                id="save-btn" class="remember poke-button poke-button-green">
+                id="save-btn" class="remember poke-button poke-button-green" onclick="savePokemonToFavorites(event)">
                     remember / save '${results.name}'
                 </button>
         </div>`;
-
-        initSaveButton();
     } else {
         // favorites list
 
-        arraySort(results, sortBy, sortOrder);
+        arraySort(results, listSortBy, listSortOrder);
         // need to refresh the data because when deleting we use the array index
         localStorage.setItem('pokemonobjects', JSON.stringify(results));
 
@@ -167,15 +206,13 @@ const createOutput = (type = 'list', containerID = '', results = null, isSearchR
                         <time datetime="${time}">${time}</time>
                     </span>
                     <div class="flex">
-                        <a class="pokeshow poke-button poke-button-green" href="${baseUrlForPokemon + pokemon.id}" data-id="${i}">view</a>
-                        <a class="pokeremove poke-button poke-button-highlight" href="#" data-id="${i}">remove</a>
+                        <a class="pokeshow poke-button poke-button-green" href="${baseUrlForPokemon + pokemon.id}" data-id="${i}" onclick="getPokemonFromStorage(event)">view</a>
+                        <a class="pokeremove poke-button poke-button-highlight" href="#" data-id="${i}" onclick="removePokemonFromFavorites(event)">remove</a>
                     </div>
                 </li>
             `;
         }
         outputContainer.innerHTML += `<ul>${pokelist}</ul>`;
-
-        initPokeLinks();
     }
 
     document.getElementById(containerID).classList.remove('loading');
@@ -194,31 +231,28 @@ const createReport = (type, containerID, text = 'Error 404') => {
         <div class="type-${type}  ${(type === 'error') ? 'bg-red-500 text-white' : 'bg-yellow-200'}  rounded p-3  flex flex-col">
             <h3 class="text-3xl text-center">${type}</h3>
             <p class="text-center">${text}</p>
-            <a href="#" id="resetBtn" class="poke-button poke-button-green">dismiss</a>
+            <a href="#" id="resetBtn" class="poke-button poke-button-green" onclick="resetList(event)">dismiss</a>
         </div>
     `;
-    initResetButton();
 }
 
 /**
- * loads a new dataset by url via xhr
- * @param {Event} event 
+ * gets a new dataset as a slice from the loaded pokemonsCompleteObject
+ * @param {Event} event called by 'prev' / 'next' buttons (click)
  */
-const loadDataSetByUrl = (event) => {
+const getDatasetPrevNext = (event) => {
     event.preventDefault();
     document.getElementById('outputContainer').classList.add('loading');
-    getPokemonsByUrl('list', 'outputContainer', event.target.href);
 
-    if (event.target.classList.contains('next')) {
-        currentOffset += currentLimit;
-    } else {
-        currentOffset -= currentLimit;
-    }
+    const multiplier = event.target.dataset.multiplier;
+    listOffset += listLength * multiplier;
+
+    createOutput('list', 'outputContainer', pokemonsCompleteObject.results.slice(listOffset, listOffset + listLength));
 }
 
 /**
  * loads a pokemon by url via xhr
- * @param {Event} event 
+ * @param {Event} event mouse event (click)
  */
 const getPokemonByUrl = (event) => {
     event.preventDefault();
@@ -228,7 +262,7 @@ const getPokemonByUrl = (event) => {
 
 /**
  * loads a pokemon from storage
- * @param {Event} event 
+ * @param {Event} event mouse event (click)
  */
 const getPokemonFromStorage = (event) => {
     event.preventDefault();
@@ -253,21 +287,21 @@ const getFavoritePokemons = () => {
 
 /**
  * remove single pokemon from local storage
- * @param {Event} event 
+ * @param {Event} event mouse event (click)
  * @returns 
  */
-const removePokemon = (event) => {
+const removePokemonFromFavorites = (event) => {
 
     event.preventDefault();
     const pokeID = event.target.dataset.id;
 
-    // Get previous data OR an empty array
+    // get previous data OR an empty array
     const storageObjects = JSON.parse(localStorage.getItem('pokemonobjects')) || [];
 
     // remove the pokemon
     storageObjects.splice(pokeID, 1);
 
-    // Set item to a stringified version of an array with the old and new tasks
+    // store the favorite list
     localStorage.setItem('pokemonobjects', JSON.stringify(storageObjects));
 
     getFavoritePokemons();
@@ -275,10 +309,10 @@ const removePokemon = (event) => {
 
 /**
  * save single pokemon to local storage
- * @param {Event} event 
+ * @param {Event} event mouse event (click)
  * @returns 
  */
-const savePokemon = (event) => {
+const savePokemonToFavorites = (event) => {
     event.preventDefault();
 
 
@@ -287,9 +321,9 @@ const savePokemon = (event) => {
 
     // Get previous data OR an empty array
     const previousObjects = JSON.parse(localStorage.getItem('pokemonobjects')) || [];
+
     // no duplicates allowed!
     const elementExists = previousObjects.find((poke) => poke.id === pokeID);
-    console.log(elementExists);
     if (elementExists) {
         elementExists.comment = document.getElementById('comment').value;
         localStorage.setItem('pokemonobjects', JSON.stringify(previousObjects));
@@ -301,88 +335,47 @@ const savePokemon = (event) => {
     //add comment
     currentItem.comment = document.getElementById('comment').value;
 
-    // Set item to a stringified version of an array with the old and new tasks
+    // Set item to a stringified version of an array with the new values
     localStorage.setItem('pokemonobjects', JSON.stringify([...previousObjects, currentItem]));
 
     getFavoritePokemons();
 }
 
 /**
- * initialize the save button
+ * sorts the list
+ * @param {Event} event mouse event (click) 
  */
-const initSaveButton = () => {
-    document.getElementById('save-btn').addEventListener('click', savePokemon, false);
+const sortList = (event) => {
+    listSortBy = document.getElementById('sortBySelector').value;
+    listSortOrder = document.getElementById('sortOrderSelector').value;
+
+    getFavoritePokemons();
 }
 
 /**
- * initialize the prev / next buttons
+ * searches after a pokemon
+ * @param {Event} event mouse event (click)
+ * @returns 
  */
-const initDataLinks = () => {
-    // apply functions to the prev & next links
-    const dataLinks = document.getElementsByClassName("datalink");
-    for (let i = 0; i < dataLinks.length; i++) {
-        dataLinks[i].addEventListener('click', loadDataSetByUrl, false);
+const searchPokemon = (event) => {
+    event.preventDefault();
+    const searchTerm = document.getElementById('searchTerm').value;
+    if (!searchTerm) {
+        console.log('no search term given');
+        return;
     }
+    console.log('searchTerm = ',searchTerm);
+    getPokemonsByUrl('list', 'outputContainer', baseUrlForPokemon + searchTerm, true);
 }
 
-/**
- * initialize sorting options
- */
-const initSortingSelects = () => {
-    const sortingSelects = document.getElementsByClassName("sortBy");
-    for (let i = 0; i < sortingSelects.length; i++) {
-        sortingSelects[i].addEventListener('change', (event) => {
-            sortBy = document.getElementById('sortBySelector').value;
-            sortOrder = document.getElementById('sortOrderSelector').value;
-
-            getFavoritePokemons();
-        }, false);
-    }
-}
 
 /**
- * initializes the links for the detail view
+ * resets the pokemon list
+ * @param {Event} event mouse event (click)
  */
-const initPokeLinks = () => {
-    const pokeLinks = document.getElementsByClassName("pokelink");
-    for (let i = 0; i < pokeLinks.length; i++) {
-        pokeLinks[i].addEventListener('click', getPokemonByUrl, false);
-    }
-
-    const pokeShow = document.getElementsByClassName("pokeshow");
-    for (let i = 0; i < pokeShow.length; i++) {
-        pokeShow[i].addEventListener('click', getPokemonFromStorage, false);
-    }
-
-    const pokeRemoves = document.getElementsByClassName("pokeremove");
-    for (let i = 0; i < pokeRemoves.length; i++) {
-        pokeRemoves[i].addEventListener('click', removePokemon, false);
-    }
-}
-
-/**
- * initializes the search
- */
-const initSearch = () => {
-    document.getElementById('searchBtn').addEventListener('click', (event) => {
-        const searchTerm = document.getElementById('searchTerm').value;
-        if (!searchTerm) {
-            console.log('no search term');
-            return;
-        }
-        console.log(searchTerm);
-        getPokemonsByUrl('list', 'outputContainer', baseUrlForPokemon + searchTerm, true);
-    }, false);
-}
-
-/**
- * initializes the search
- */
-const initResetButton = () => {
-    document.getElementById('resetBtn').addEventListener('click', (event) => {
-        event.preventDefault();
-        getPokemonsByUrl('list', 'outputContainer', 'https://pokeapi.co/api/v2/pokemon/?offset=' + currentOffset + '&limit=' + currentLimit);
-    }, false)
+const resetList = (event) => {
+    event.preventDefault();
+    createOutput('list', 'outputContainer', pokemonsCompleteObject.results.slice(listOffset, listOffset + listLength))
 }
 
 /**
@@ -390,18 +383,15 @@ const initResetButton = () => {
  */
 const initPage = () => {
     getFavoritePokemons();
-    initSearch();
-    initSortingSelects();
-
     // initial call
-    getPokemonsByUrl('list', 'outputContainer', 'https://pokeapi.co/api/v2/pokemon/?offset=' + currentOffset + '&limit=' + currentLimit);
+    getPokemonsByUrl('', '', '', false, 1);
 }
 
 /**
- * sorts arrays by given terms
+ * sorts (changes) the array by given terms
  * @param {Array} arr the array to sort
  * @param {String} sortBy the term by which to sort the items
- * @param {String} order the sort order
+ * @param {String} order the sort order ('asc', 'desc')
  * @returns 
  */
 const arraySort = (arr = [], sortBy = 'name', order = 'asc') => {
@@ -412,12 +402,12 @@ const arraySort = (arr = [], sortBy = 'name', order = 'asc') => {
     }
 }
 
-
-let loadListener = window.addEventListener('load', function () {
-    // alert("It's loaded!");
-
-    if (!pageInitialized) {
+/**
+ * waits for the window to load before initializing page
+ */
+const loadListener = window.addEventListener('load', () => {
+    if (!isInitializedPage) {
         initPage();
-        pageInitialized = true;
+        isInitializedPage = true;
     }
-}, false)
+}, false);

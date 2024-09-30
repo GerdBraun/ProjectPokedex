@@ -60,6 +60,11 @@
                 */
             }
           </style>
+          <style type="text/css">
+            .loading {
+                background-color: red;
+            }
+          </style>
     </head>
     <body>
         <header
@@ -74,7 +79,11 @@
                     <label for="searchTerm">Search: </label>
                     <input type="text" name="searchTerm" id="searchTerm">
                     <a href="#" id="searchBtn"
-                        class="poke-button poke-button-green">go</a>
+                        class="poke-button poke-button-green" onclick="searchPokemon(event)">go</a>
+                    <a href="#" id="resetBtnTop"
+                        class="poke-button poke-button-green"
+                        onclick="resetList(event)">dismiss</a>
+
                 </form>
             </section>
         </header>
@@ -111,7 +120,7 @@
                     <form class="flex justify-between items-center mb-3">
                         <label for="sortBySelector">Sort by: </label>
                         <select name="sortBy" id="sortBySelector"
-                            class="sortBy">
+                            class="sortBy" onchange="sortList(event)">
                             <option value="timestamp"
                                 selected>timestamp</option>
                             <option value="name">name</option>
@@ -119,7 +128,7 @@
 
                         <label for="sortOrderSelector">Sorting order: </label>
                         <select name="sortOrder" id="sortOrderSelector"
-                            class="sortBy">
+                            class="sortBy" onchange="sortList(event)">
                             <option value="desc"
                                 selected>descending</option>
                             <option value="asc">ascending</option>
