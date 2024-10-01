@@ -1,8 +1,25 @@
 /**
  * ToDos
+ * 
  * filter list, sort list
+ * 
+ * HTMLCollection use this for iterating "htmlcoll.foreach(elem, index)"
+ * document.body
+ * array.foreach
+ * 
+ * use fetch instead of xhr ???
  */
 
+
+
+/* 
+// fetch example
+fetch('https://pokeapi.co/api/v2/pokemon/')
+  .then(response => response.json())
+  .then(data => console.log(data))
+  .catch(error => console.error('Error:', error));
+
+ */
 
 /**
  * 
@@ -32,7 +49,10 @@ const createOutput = (type = 'list', containerID = '', results = null, isSearchR
             pokeList += `
                 <li class="draggable flex p-2 pl-3 text-gray-800 bg-white rounded shadow mb-1 justify-between items-center cursor-move" data-url="${pokemon.url}" draggable="true" ondragstart="page.pokemonlist.dragstartHandler(event)">
                     <span>${pokemon.name}</span>
+                    <img src="images/drag.svg" class="w-4">
+                    <!--
                     <a href="${pokemon.url}" class="pokelink poke-button poke-button-green" onclick="return page.single.getByUrl(event)">view</a>
+                    -->
                 </li>
             `;
         }
@@ -45,10 +65,10 @@ const createOutput = (type = 'list', containerID = '', results = null, isSearchR
             <div id="pokenext" class="flex justify-between  items-center py-3">
                 <p>showing pokemons ${page.pokemonlist.listOffset + 1} to ${toCount} of ${page.pokemonlist.pokemonsCompleteCount}</p>
                 <div>
-                    <a href="#" class="datalink poke-button poke-button-green ${page.pokemonlist.listOffset >= page.pokemonlist.listLength ? 'visible' : 'hidden'}" title="get previous ${page.pokemonlist.listLength}" data-multiplier="0" onclick="page.pokemonlist.getPrevNext(event)">|<</a>
-                    <a href="#" class="datalink poke-button poke-button-green ${page.pokemonlist.listOffset >= page.pokemonlist.listLength ? 'visible' : 'hidden'}" title="get previous ${page.pokemonlist.listLength}" data-multiplier="-1" onclick="page.pokemonlist.getPrevNext(event)"><</a>
-                    <a href="#" class="datalink poke-button poke-button-green ${(page.pokemonlist.pokemonsCompleteCount > page.pokemonlist.listOffset + page.pokemonlist.listLength) ? 'visible' : 'hidden'}" title="get next ${page.pokemonlist.listLength}" data-multiplier="1" onclick="page.pokemonlist.getPrevNext(event)">></a>
-                    <a href="#" class="datalink poke-button poke-button-green ${(page.pokemonlist.pokemonsCompleteCount > page.pokemonlist.listOffset + page.pokemonlist.listLength) ? 'visible' : 'hidden'}" title="get next ${page.pokemonlist.listLength}" data-multiplier="x" onclick="page.pokemonlist.getPrevNext(event)">>|</a>
+                    <a href="#" class="datalink poke-button poke-button-green ${page.pokemonlist.listOffset >= page.pokemonlist.listLength ? 'visible' : 'hidden'}" title="get previous ${page.pokemonlist.listLength}" data-multiplier="0" onclick="page.pokemonlist.getPrevNext(event)">&#8676;</a>
+                    <a href="#" class="datalink poke-button poke-button-green ${page.pokemonlist.listOffset >= page.pokemonlist.listLength ? 'visible' : 'hidden'}" title="get previous ${page.pokemonlist.listLength}" data-multiplier="-1" onclick="page.pokemonlist.getPrevNext(event)">&#8592;</a>
+                    <a href="#" class="datalink poke-button poke-button-green ${(page.pokemonlist.pokemonsCompleteCount > page.pokemonlist.listOffset + page.pokemonlist.listLength) ? 'visible' : 'hidden'}" title="get next ${page.pokemonlist.listLength}" data-multiplier="1" onclick="page.pokemonlist.getPrevNext(event)">&#8594;</a>
+                    <a href="#" class="datalink poke-button poke-button-green ${(page.pokemonlist.pokemonsCompleteCount > page.pokemonlist.listOffset + page.pokemonlist.listLength) ? 'visible' : 'hidden'}" title="get next ${page.pokemonlist.listLength}" data-multiplier="x" onclick="page.pokemonlist.getPrevNext(event)">&#8677;</a>
                 </div>
             </div>        
         `;
@@ -105,7 +125,7 @@ const createOutput = (type = 'list', containerID = '', results = null, isSearchR
             const time = newDate.toLocaleString();
 
             pokelist += `
-                <li class="flex p-2 text-gray-800 bg-white rounded shadow mb-1 justify-between items-center">
+                <li class="flex p-2 text-gray-800 bg-white rounded shadow mb-1 justify-between items-center" >
                     <figure class="bg-white rounded relative">
                         <img src="${pokemon.sprites.front_default}" alt="${pokemon.name}" title="${pokemon.name}">
                         <figcaption class="text-sm absolute bottom-0 w-full text-center bg-white bg-opacity-50">${pokemon.name}</figcaption>
@@ -173,6 +193,39 @@ const page = {
         page.pokemonlist.getByUrl('', '', '', false, 1);
     },
 
+    /**
+     * opens THE modal window
+     * @param {String} type 
+     * @param {String} title 
+     * @param {String} content 
+     */
+    openModal: (type = '', title = 'no title given', content = 'no  content given') => {
+        const modal = document.querySelector('#defaultModal');
+        const modalTitle = modal.querySelector('h3');
+        const modalText = modal.querySelector('.modal-text');
+
+        switch (type) {
+            case 'warning':
+                modalTitle.classList.add('text-orange-500');
+                break;
+            case 'error':
+                modalTitle.classList.add('text-red-500');
+                break;
+            default:
+                modalTitle.classList.add('text-gray-900');
+        }
+
+        modalText.innerHTML = content;
+        modalTitle.textContent = title;
+        modal.classList.remove('hidden');
+    },
+    /**
+     * closes THE modalwindow
+     */
+    closeModal: () => {
+        document.querySelector('#defaultModal').classList.add('hidden');
+    },
+
     pokemonlist: {
         /**
          * vars used for displaying the pokemon list
@@ -185,7 +238,6 @@ const page = {
         pokemonsCompleteCount: 0,
         // the complete object of pokemons retrieved by xhr
         pokemonsCompleteObject: {},
-
 
         /**
          * retrieves pokemon list
@@ -225,7 +277,7 @@ const page = {
             xhr.addEventListener("readystatechange", function (x) {
                 if (this.readyState === this.DONE) {
                     if (this.status === 404) {
-                        page.pokemonlist.createReport('error', this.data.containerID, 'Error 404');
+                        page.openModal('error', 'Error 404: Pokemon not found', 'We could not find such a Pokemon!');
                         return;
                     }
 
@@ -268,48 +320,12 @@ const page = {
                 page.pokemonlist.listOffset = 0;
             } else if (multiplier === 'x') {
                 // page.pokemonlist.listOffset = page.pokemonlist.pokemonsCompleteCount % page.pokemonlist.listLength;
-                page.pokemonlist.listOffset = parseInt(page.pokemonlist.pokemonsCompleteCount / page.pokemonlist.listLength) * page.pokemonlist.listLength;
+                page.pokemonlist.listOffset = Math.floor(page.pokemonlist.pokemonsCompleteCount / page.pokemonlist.listLength) * page.pokemonlist.listLength;
             } else {
                 page.pokemonlist.listOffset += page.pokemonlist.listLength * multiplier;
             }
 
             createOutput('list', 'outputContainer', page.pokemonlist.pokemonsCompleteObject.results.slice(page.pokemonlist.listOffset, page.pokemonlist.listOffset + page.pokemonlist.listLength));
-        },
-
-        /**
-           * resets the pokemon list
-           * @param {Event} event mouse event (click)
-           */
-        reset: (event = null) => {
-            console.log('called: page.pokemonlist.reset');
-
-            window.location.href = 'index.html';
-
-            event.preventDefault();
-            if (event.target.dataset.complete) {
-                page.pokemonlist.listOffset = 0;
-            }
-            document.querySelector('#searchTerm').value = '';
-            createOutput('list', 'outputContainer', page.pokemonlist.pokemonsCompleteObject.results.slice(page.pokemonlist.listOffset, page.pokemonlist.listOffset + page.pokemonlist.listLength))
-        },
-
-        /**
-         * creates a report in given container
-         * @param {String} type the type of report ('error')
-         * @param {String} containerID the ID of the container in which to show the report
-         * @param {String} text the text to show
-         */
-        createReport: (type, containerID, text = 'Error 404') => {
-            console.log('called: page.pokemonlist.createReport');
-            const outputContainer = document.querySelector('#' + containerID);
-
-            outputContainer.innerHTML = `
-                <div class="type-${type}  ${(type === 'error') ? 'bg-red-500 text-white' : 'bg-yellow-200'}  rounded p-3  flex flex-col">
-                    <h3 class="text-3xl text-center">${type}</h3>
-                    <p class="text-center">${text}</p>
-                    <a href="#" id="resetBtn" class="poke-button poke-button-green" onclick="page.pokemonlist.reset(event)">dismiss</a>
-                </div>
-            `;
         },
 
         /**
@@ -367,11 +383,11 @@ const page = {
          */
         getByUrl: (input) => {
             console.log('called: page.single.getByUrl');
-            let href='';
+            let href = '';
             console.log(typeof input);
-            if(typeof input === 'string'){
+            if (typeof input === 'string') {
                 href = input;
-            }else{
+            } else {
                 // input is Event
                 input.preventDefault();
                 href = event.target.href;
@@ -386,11 +402,11 @@ const page = {
         allowDrop: (ev) => {
             ev.preventDefault();
         },
-        
+
         drop: (ev) => {
             ev.preventDefault();
             var data = ev.dataTransfer.getData("url");
-            console.log('dropped: ',data);
+            console.log('dropped: ', data);
             page.single.getByUrl(data);
         },
     },
