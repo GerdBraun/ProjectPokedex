@@ -88,7 +88,8 @@
 
             <div class="flex-1 mb-6 flex justify-between items-center bg-gray-50 rounded-lg shadow-xl p-6">
             <h1
-                class="mb-4 text-4xl font-extrabold tracking-tight leading-none text-grey-800 md:text-5xl lg:text-6xl dark:text-white center">
+                class="mb-4 text-4xl font-extrabold tracking-tight leading-none text-grey-800 md:text-5xl lg:text-6xl dark:text-white  flex items-center">
+                <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/25.png" alt="pikachu">
                 Pokedex
             </h1>
 
@@ -125,6 +126,9 @@
             </section>
 
             <section
+                id="detailSection"
+                ondrop="page.single.drop(event)" 
+                ondragover="page.single.allowDrop(event)"
                 class="flex-1 mb-6 flex flex-col justify-between bg-gray-50 rounded-lg shadow-xl p-6">
                 <div
                     class>

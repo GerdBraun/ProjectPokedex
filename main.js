@@ -5,12 +5,6 @@
 
 
 /**
- * status of the page (used for preventing multiple page initialization on window.load)
- */
-let isInitializedPage = false;
-
-
-/**
  * 
  * @param {String} type list, single, favorites
  * @param {String} containerID the id of the target container for the output
@@ -36,7 +30,7 @@ const createOutput = (type = 'list', containerID = '', results = null, isSearchR
         let pokeList = '';
         for (let pokemon of results) {
             pokeList += `
-                <li class="flex p-2 pl-3 text-gray-800 bg-white rounded shadow mb-1 justify-between items-center">
+                <li class="draggable flex p-2 pl-3 text-gray-800 bg-white rounded shadow mb-1 justify-between items-center cursor-move" data-url="${pokemon.url}" draggable="true" ondragstart="page.pokemonlist.dragstartHandler(event)">
                     <span>${pokemon.name}</span>
                     <a href="${pokemon.url}" class="pokelink poke-button poke-button-green" onclick="return page.single.getByUrl(event)">view</a>
                 </li>
@@ -46,7 +40,7 @@ const createOutput = (type = 'list', containerID = '', results = null, isSearchR
 
         if (!isSearchResult) {
             let toCount = page.pokemonlist.listOffset + page.pokemonlist.listLength;
-            toCount = (toCount>page.pokemonlist.pokemonsCompleteCount) ? page.pokemonlist.pokemonsCompleteCount:toCount;
+            toCount = (toCount > page.pokemonlist.pokemonsCompleteCount) ? page.pokemonlist.pokemonsCompleteCount : toCount;
             outputContainer.innerHTML += `
             <div id="pokenext" class="flex justify-between  items-center py-3">
                 <p>showing pokemons ${page.pokemonlist.listOffset + 1} to ${toCount} of ${page.pokemonlist.pokemonsCompleteCount}</p>
@@ -133,14 +127,15 @@ const createOutput = (type = 'list', containerID = '', results = null, isSearchR
 }
 
 
+
+
 /**
  * waits for the window to load before initializing page
  */
-const loadListener = window.addEventListener('load', () => {
-    if (!isInitializedPage) {
-        page.initialize();
-        isInitializedPage = true;
-    }
+const loadListener = window.addEventListener('DOMContentLoaded', () => {
+    console.log('DOMContentLoaded');
+    page.initialize();
+
 }, false);
 
 
@@ -168,7 +163,7 @@ const page = {
         page.favorites.getList();
 
         const urlParams = new URLSearchParams(window.location.search);
-        if(urlParams && urlParams.get('searchTerm') && urlParams.get('searchTerm')!==''){
+        if (urlParams && urlParams.get('searchTerm') && urlParams.get('searchTerm') !== '') {
             document.querySelector('#searchTerm').value = urlParams.get('searchTerm');
             page.pokemonlist.search(event);
             return;
@@ -269,12 +264,12 @@ const page = {
             document.querySelector('#outputContainer').classList.add('loading');
 
             const multiplier = event.target.dataset.multiplier;
-            if(multiplier === '0'){
+            if (multiplier === '0') {
                 page.pokemonlist.listOffset = 0;
-            }else if(multiplier === 'x'){
+            } else if (multiplier === 'x') {
                 // page.pokemonlist.listOffset = page.pokemonlist.pokemonsCompleteCount % page.pokemonlist.listLength;
                 page.pokemonlist.listOffset = parseInt(page.pokemonlist.pokemonsCompleteCount / page.pokemonlist.listLength) * page.pokemonlist.listLength;
-            }else{
+            } else {
                 page.pokemonlist.listOffset += page.pokemonlist.listLength * multiplier;
             }
 
@@ -291,7 +286,7 @@ const page = {
             window.location.href = 'index.html';
 
             event.preventDefault();
-            if(event.target.dataset.complete){
+            if (event.target.dataset.complete) {
                 page.pokemonlist.listOffset = 0;
             }
             document.querySelector('#searchTerm').value = '';
@@ -348,6 +343,16 @@ const page = {
                 return arr.sort((b, a) => (a[sortBy] > b[sortBy]) ? 1 : ((b[sortBy] > a[sortBy]) ? -1 : 0));
             }
         },
+
+        /**
+         * handles the beginning of a drag action
+         * @param {Event} event 
+         */
+        dragstartHandler: (event) => {
+            // Add the target element's url to the data transfer object
+            console.log('starting drag with url = ', event.target.dataset.url);
+            event.dataTransfer.setData("text/plain", event.target.dataset.url);
+        },
     },
 
     single: {
@@ -358,13 +363,35 @@ const page = {
 
         /**
          * loads a pokemon by url via xhr
-         * @param {Event} event mouse event (click)
+         * @param {*} input mouse event (click) or string (url)
          */
-        getByUrl: (event) => {
+        getByUrl: (input) => {
             console.log('called: page.single.getByUrl');
-            event.preventDefault();
+            let href='';
+            console.log(typeof input);
+            if(typeof input === 'string'){
+                href = input;
+            }else{
+                // input is Event
+                input.preventDefault();
+                href = event.target.href;
+
+            }
+
             document.querySelector('#' + page.single.container).classList.add('loading');
-            page.pokemonlist.getByUrl(page.single.type, page.single.container, event.target.href);
+            page.pokemonlist.getByUrl(page.single.type, page.single.container, href);
+        },
+
+
+        allowDrop: (ev) => {
+            ev.preventDefault();
+        },
+        
+        drop: (ev) => {
+            ev.preventDefault();
+            var data = ev.dataTransfer.getData("url");
+            console.log('dropped: ',data);
+            page.single.getByUrl(data);
         },
     },
 
