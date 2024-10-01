@@ -196,7 +196,7 @@ const page = {
         }
 
         // make the initial call
-        page.pokemonlist.getByUrl('', '', '', false, 1);
+        page.pokemonlist.fetchPokemonsCount();
     },
 
     /**
@@ -244,73 +244,58 @@ const page = {
         pokemonsCompleteCount: 0,
         // the complete object of pokemons retrieved by xhr
         pokemonsCompleteObject: {},
+        // the result of pokemons retrieved by xhr
+        pokemonsCompleteResults: [],
+
+
+
+
+
 
         /**
-         * retrieves pokemon list
-         * @param {String} type 
-         * @param {String} containerID 
-         * @param {String} url 
-         * @param {Boolean} isSearchResult 
-         * @param {Number} initStep 
+         * fetch one item to get the total count of pokemons
          */
-        getByUrl: (type, containerID, url, isSearchResult = false, initStep = 0) => {
-            console.log('called: page.pokemonlist.getByUrl');
-            if (initStep > 0) {
-                switch (initStep) {
-                    case 1:
-                        // load one pokemon to get the total number of entries
-                        url = page.baseUrlForPokemon + '?offset=0&limit=1';
-                    case 2:
-                        // load the complete list of pokemons available
-                        url = page.baseUrlForPokemon + '?offset=0&limit=' + page.pokemonlist.pokemonsCompleteCount;
-                        type = 'list';
-                        containerID = 'outputContainer';
-                }
-            }
+        fetchPokemonsCount:() => {
+            const call = helpers.xhr.getDataByUrl(page.baseUrlForPokemon + '?offset=0limit=1')
+                .then((data) => {
+                    //console.log(data);
+                    page.pokemonlist.pokemonsCompleteCount = data.count;
 
-            const data = '';
-            const xhr = new XMLHttpRequest();
-            xhr.withCredentials = false;
-
-            // pass needed  data to xhr
-            xhr.data = {
-                type: type,
-                containerID: containerID,
-                isSearchResult: isSearchResult,
-                initStep: initStep,
-            };
-
-            xhr.addEventListener("readystatechange", function (x) {
-                if (this.readyState === this.DONE) {
-                    if (this.status === 404) {
-                        page.openModal('error', 'Error 404: Pokemon not found', 'We could not find such a Pokemon!');
-                        return;
-                    }
-
-                    if (this.data.initStep) {
-                        page.pokemonlist.pokemonsCompleteObject = JSON.parse(this.responseText);
-                        page.pokemonlist.sort(page.pokemonlist.pokemonsCompleteObject.results);
-
-                        page.pokemonlist.pokemonsCompleteCount = page.pokemonlist.pokemonsCompleteObject.count;
-
-                        if (this.data.initStep === 1) {
-                            page.pokemonlist.getByUrl('', '', '', false, 2);
-                        } else {
-                            const dataObject = page.pokemonlist.pokemonsCompleteObject.results;
-                            createOutput(this.data.type, this.data.containerID, dataObject.slice(0, page.pokemonlist.listLength), false);
-                        }
-                        return;
-                    }
-
-                    // create output
-                    createOutput(this.data.type, this.data.containerID, JSON.parse(this.responseText), this.data.isSearchResult);
-                }
-            });
-
-            xhr.open("GET", url);
-
-            xhr.send(data);
+                    console.log('total pokemons',page.pokemonlist.pokemonsCompleteCount);
+                    page.pokemonlist.fetchAllPokemons();
+                });
         },
+        /**
+         * fetch all pokemons
+         */
+        fetchAllPokemons:() => {
+            const call = helpers.xhr.getDataByUrl(page.baseUrlForPokemon + '?offset=0&limit=' + page.pokemonlist.pokemonsCompleteCount)
+                .then((data) => {
+                    console.log('fetched all pokemons');
+                    page.pokemonlist.pokemonsCompleteObject = data;
+                    page.pokemonlist.pokemonsCompleteResults = data.results;
+                    // populate the list for the first time
+                    createOutput('list', 'outputContainer', page.pokemonlist.pokemonsCompleteResults.slice(0, page.pokemonlist.listLength));
+                });
+        },
+        /**
+         * get a singele pokemon & show it in the details view
+         * @param {String} url 
+         */
+        fetchSingleByUrl:(url='') => {
+            url = url || page.baseUrlForPokemon + '?offset=0limit=1';
+
+            const call = helpers.xhr.getDataByUrl(url)
+                .then((data) => {
+                    console.log('fetchByUrl');
+                    // populate detailsContainer
+                    createOutput(page.single.type, page.single.container, data);
+                });
+        },
+
+
+
+
 
         /**
         * gets a new dataset as a slice from the loaded pokemonsCompleteObject
@@ -348,7 +333,7 @@ const page = {
                 return;
             }
             console.log('searchTerm = ', searchTerm);
-            page.pokemonlist.getByUrl('list', 'outputContainer', page.baseUrlForPokemon + searchTerm, true);
+            page.pokemonlist.fetchSingleByUrl(page.baseUrlForPokemon + searchTerm, true);
         },
 
         /**
@@ -401,7 +386,7 @@ const page = {
             }
 
             document.querySelector('#' + page.single.container).classList.add('loading');
-            page.pokemonlist.getByUrl(page.single.type, page.single.container, href);
+            page.pokemonlist.fetchSingleByUrl(href);
         },
 
 
@@ -555,11 +540,48 @@ const helpers = {
         addToStorage: (key, value) => {
             return localStorage.setItem(key, JSON.stringify(value))
         },
-        getFromStorage: (key)  => {
+        getFromStorage: (key) => {
             return JSON.parse(localStorage.getItem(key));
         },
-        addToExisting:(key,value) => {
-            
+        addToExisting: (key, value) => {
+
         }
     },
+
+    xhr: {
+        getDataByUrl: (url) => {
+            return fetch(url)
+                .then(response => response.json())
+                .then(responseData => {
+                    return responseData;
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    helpers.modal.show('error', 'could not load data');
+                });
+        },
+    },
+
+    modal: {
+        show: (type = '', title = 'no title given', content = 'no  content given') => {
+            const modal = document.querySelector('#defaultModal');
+            const modalTitle = modal.querySelector('h3');
+            const modalText = modal.querySelector('.modal-text');
+
+            switch (type) {
+                case 'warning':
+                    modalTitle.classList.add('text-orange-500');
+                    break;
+                case 'error':
+                    modalTitle.classList.add('text-red-500');
+                    break;
+                default:
+                    modalTitle.classList.add('text-gray-900');
+            }
+
+            modalText.innerHTML = content;
+            modalTitle.textContent = title;
+            modal.classList.remove('hidden');
+        },
+    }
 }
