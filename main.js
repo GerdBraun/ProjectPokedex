@@ -407,24 +407,23 @@ const page = {
 
         allowDrop: (event) => {
             event.preventDefault();
-            document.querySelector('#detailSection').classList.add('bg-green-100');
+            event.currentTarget.classList.add('bg-green-100');
         },
 
         dragOver: (event) => {
-            document.querySelector(target).classList.add('bg-green-100');
+            event.currentTarget.classList.add('bg-green-100');
         },
 
         dragOut: (event) => {
-            document.querySelector('#detailSection').classList.remove('bg-green-100');
+            event.currentTarget.classList.remove('bg-green-100');
         },
-
 
         drop: (event) => {
             event.preventDefault();
-            event.target.classList.remove('bg-green-100');
+            event.currentTarget.classList.remove('bg-green-100');
             var data = event.dataTransfer.getData("url");
             console.log('dropped: ', data);
-            document.querySelector('#detailSection').classList.remove('bg-green-100');
+            event.currentTarget.classList.remove('bg-green-100');
             page.single.getByUrl(data);
         },
     },
